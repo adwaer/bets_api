@@ -1,8 +1,9 @@
 ﻿using In.Cqrs.Command;
+using In.DataAccess.Entity;
 
-namespace Bets.Web.Config
+namespace Bets.Games.Domain.Models
 {
-    public class SimpleMessageResult : IMessageResult
+    public class SimpleMessageResult : HasKeyBase<long>, IMessageResult
     {
         public string Body { get; set; }
         public string Info { get; set; }

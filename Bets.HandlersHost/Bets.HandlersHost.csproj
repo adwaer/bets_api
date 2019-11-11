@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Bets.Games.Dal\Bets.Games.Dal.csproj" />
+      <ProjectReference Include="..\Bets.Games.QueryHandlers\Bets.Games.QueryHandlers.csproj" />
+      <ProjectReference Include="..\infrastructure\In.Cqrs.Command.Nats\In.Cqrs.Command.Nats.csproj" />
+      <ProjectReference Include="..\infrastructure\In.Cqrs.Nats\In.Cqrs.Nats.csproj" />
+      <ProjectReference Include="..\infrastructure\In.Cqrs.Query.Nats\In.Cqrs.Query.Nats.csproj" />
+      <ProjectReference Include="..\infrastructure\In.DataAccess.EfCore\In.DataAccess.EfCore.csproj" />
+      <ProjectReference Include="..\infrastructure\In.DataMapping.Automapper\In.DataMapping.Automapper.csproj" />
+      <ProjectReference Include="..\infrastructure\In.DDD\In.DDD.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Serilog.AspNetCore" Version="3.2.0-dev-00135" />
+    </ItemGroup>
+
+</Project>

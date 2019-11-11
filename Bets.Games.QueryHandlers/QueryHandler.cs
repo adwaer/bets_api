@@ -2,7 +2,7 @@
 
 namespace Bets.Games.QueryHandlers
 {
-    public class Class1
+    public class QueryHandler
     {
     }
 }

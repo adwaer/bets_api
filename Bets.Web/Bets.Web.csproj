@@ -2,16 +2,22 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="Serilog.AspNetCore" Version="3.2.0-dev-00135" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc4" />
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Bets.Api.Dal\Bets.Api.Dal.csproj" />
+      <ProjectReference Include="..\Bets.Games.Domain\Bets.Games.Domain.csproj" />
       <ProjectReference Include="..\infrastructure\In.Cqrs.Command.Nats\In.Cqrs.Command.Nats.csproj" />
       <ProjectReference Include="..\infrastructure\In.Cqrs.Nats\In.Cqrs.Nats.csproj" />
       <ProjectReference Include="..\infrastructure\In.Cqrs.Query.Nats\In.Cqrs.Query.Nats.csproj" />
+      <ProjectReference Include="..\infrastructure\In.DataAccess.Mongo\In.DataAccess.Mongo.csproj" />
+      <ProjectReference Include="..\infrastructure\In.Web\In.Web.csproj" />
     </ItemGroup>
 
 </Project>

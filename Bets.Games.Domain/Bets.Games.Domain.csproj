@@ -5,6 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\infrastructure\In.Cqrs.Command\In.Cqrs.Command.csproj" />
       <ProjectReference Include="..\infrastructure\In.DataAccess\In.DataAccess.csproj" />
     </ItemGroup>
 
