@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Bets.Games.Dal;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
@@ -12,6 +14,7 @@ using Serilog.Formatting.Compact;
 
 namespace Bets.HandlersHost
 {
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class Program
     {
         public static void Main(string[] args)
@@ -20,19 +23,32 @@ namespace Bets.HandlersHost
                 .Enrich.FromLogContext()
                 .WriteTo.Console()
                 .CreateLogger();
+            
+            var host = CreateHostBuilder(args)
+                .Build();
 
-            try
+            if (args.Any(arg => arg.Equals("--migrate-db")))
             {
-                Log.Information("Starting web host");
-                CreateHostBuilder(args).Build().Run();
+                using var scope = host.Services.CreateScope();
+                var services = scope.ServiceProvider;
+                SeedData.Initialize(services);
+                Log.Information("EF MIGRATION SOCCEED");
             }
-            catch (Exception ex)
+            else
             {
-                Log.Fatal(ex, "Host terminated unexpectedly");
-            }
-            finally
-            {
-                Log.CloseAndFlush();
+                try
+                {
+                    Log.Information("Starting web host");
+                    host.Run();
+                }
+                catch (Exception ex)
+                {
+                    Log.Fatal(ex, "Host terminated unexpectedly");
+                }
+                finally
+                {
+                    Log.CloseAndFlush();
+                }
             }
         }
 

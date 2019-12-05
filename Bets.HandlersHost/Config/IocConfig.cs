@@ -55,7 +55,7 @@ namespace Bets.HandlersHost.Config
             var conn = configuration.GetConnectionString(connName);
             
             return services
-                .AddDbContext<GamesCtx>(x => x.UseNpgsql(conn))
+                .AddDbContext<GamesCtx>(x => x.UseSqlServer(conn))
                 .AddEfCore<GamesCtx>(Assemblies);
         }
 
