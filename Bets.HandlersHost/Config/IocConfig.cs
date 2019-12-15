@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using AutoMapper;
 using Bets.Games.Dal;
 using Bets.Games.Domain.Models;
 using Bets.Games.QueryHandlers;
@@ -17,27 +16,11 @@ namespace Bets.HandlersHost.Config
 {
     public static class IocConfig
     {
-        private const string CorsPolicy = "CorsPolicy";
-
         private static readonly Assembly[] Assemblies =
         {
             typeof(GamesCtx).Assembly,
             typeof(QueryHandler).Assembly
         };
-
-        public static IServiceCollection AddCorsPolicy(this IServiceCollection services)
-        {
-            services.AddCors(options =>
-            {
-                options.AddPolicy(CorsPolicy,
-                    builder => builder.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
-                        .AllowCredentials());
-            });
-
-            return services;
-        }
 
         public static IServiceCollection AddNats(this IServiceCollection services, IConfiguration config)
         {

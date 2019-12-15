@@ -4,6 +4,7 @@ using Bets.ParserHost.HostedServices;
 using In.Common.Config;
 using In.Cqrs.Nats.Config;
 using In.Logging;
+using In.Logging.Config;
 using In.Logging.Implementations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -32,7 +33,7 @@ namespace Bets.ParserHost
             services
                 .AddCommon()
                 .AddConfigOptions(Configuration)
-                .AddSingleton<ILogService, LogService>()
+                .AddLogger()
                 .AddSingleton<ThreadProvider>()
                 .AddNats(new NatsSenderOptions
                 {

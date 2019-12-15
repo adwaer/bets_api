@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Bets.Configuration;
 using Bets.Games.Domain.Models;
 using Bets.Games.Domain.MQMsgs;
-using Bets.ParserHost.Config;
 using Bets.ParserHost.Helpers;
 using Bets.Selenium;
 using In.Cqrs.Nats.Abstract;
@@ -22,6 +23,7 @@ namespace Bets.ParserHost.HostedServices
         private readonly INatsConnectionFactory _connectionFactory;
         protected readonly By WaitBy;
         private readonly ParsingBookmakerSettings _settings;
+        private readonly string _natsQueue;
 
         private IEncodedConnection _connection;
 
@@ -38,6 +40,7 @@ namespace Bets.ParserHost.HostedServices
             if (GetType() == typeof(OneXBetParserHostedService))
             {
                 _settings = options.Value.OneXBet;
+                _natsQueue = options.Value.QueueSubject;
             }
 
             LogService = logger;
@@ -61,7 +64,8 @@ namespace Bets.ParserHost.HostedServices
 
             while (!_stopped)
             {
-                var games = FetchGames();
+                var games = FetchGames()
+                    .ToList();
                 
                 SendResult(new BkMqMessage(games));
             }
@@ -91,7 +95,7 @@ namespace Bets.ParserHost.HostedServices
         {
             try
             {
-                _connection.Publish(_settings.QueueSubject, msg);
+                _connection.Publish(_natsQueue, msg);
                 _connection.Flush();
             }
             catch (Exception ex)

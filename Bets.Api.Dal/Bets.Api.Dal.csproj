@@ -11,6 +11,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Bets.Games.Domain\Bets.Games.Domain.csproj" />
+      <ProjectReference Include="..\infrastructure\In.DataAccess.Mongo\In.DataAccess.Mongo.csproj" />
     </ItemGroup>
 
 </Project>

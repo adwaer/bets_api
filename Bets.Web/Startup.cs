@@ -1,8 +1,13 @@
+using Bets.Configuration.Services;
+using Bets.Configuration.Services.Implementations;
 using Bets.Games.Domain.Models;
 using Bets.Web.Config;
+using Bets.Web.HostedServices;
+using Bets.Web.Services;
 using In.Common.Config;
 using In.Cqrs.Command.Nats.Config;
 using In.Cqrs.Query.Nats.Config;
+using In.Logging.Config;
 using In.Web.Middlerwares;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -11,6 +16,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using IocConfig = Bets.Web.Config.IocConfig;
 
 namespace Bets.Web
 {
@@ -33,6 +39,7 @@ namespace Bets.Web
         /// </summary>
         // ReSharper disable once MemberCanBePrivate.Global
         public IConfiguration Configuration { get; }
+
         private const string CorsPolicy = "CorsPolicy";
 
         /// <summary>
@@ -44,11 +51,18 @@ namespace Bets.Web
             services
                 .AddCorsPolicy()
                 .AddCommon()
+                .AddConfigOptions(Configuration)
+                .AddLogger()
                 .AddNats(Configuration)
                 .AddMongo(Configuration)
                 .AddNatsCommands<SimpleMessageResult>()
+                .AddNatsCommandFactory()
                 .AddNatsQueries()
+                .AddNatsQueryFactory()
+                .AddSingleton<INatsBkMessageReplyFactory, NatsBkMessageReplyFactory>()
                 .AddSwagger()
+                .AddHostedService<GamesHostedService>()
+                .AddSignalR().Services
                 .AddControllers();
         }
 
@@ -70,10 +84,14 @@ namespace Bets.Web
                 .UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "Bets API v1"); })
                 .UseHttpsRedirection()
                 .UseSerilogRequestLogging()
-                .UseCors("CorsPolicy")
+                .UseCors(IocConfig.CorsPolicy)
                 .UseRouting()
 //                .UseAuthorization()
-                .UseEndpoints(endpoints => { endpoints.MapControllers(); })
+                .UseEndpoints(endpoints =>
+                {
+                    endpoints.MapControllers();
+                    endpoints.MapHub<GamesHub>("/hubs/games");
+                })
                 .Run(context => context.Response.WriteAsync("The service is online"));
         }
     }

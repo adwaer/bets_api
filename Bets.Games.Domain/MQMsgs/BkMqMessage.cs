@@ -14,8 +14,8 @@ namespace Bets.Games.Domain.MQMsgs
 
         public BkMqMessage(object msg)
         {
-            Msg = msg.GetType().ToString();
-            MsgType = JsonConvert.SerializeObject(msg);
+            MsgType = msg.GetType().ToString();
+            Msg = JsonConvert.SerializeObject(msg);
         }
     }
 }

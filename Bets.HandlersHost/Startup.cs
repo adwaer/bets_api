@@ -1,6 +1,9 @@
 using Bets.HandlersHost.Config;
 using Bets.HandlersHost.HostedServices;
 using In.Common.Config;
+using In.Cqrs.Command.Nats.Config;
+using In.Cqrs.Query.Nats.Config;
+using In.Logging.Config;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -27,10 +30,13 @@ namespace Bets.HandlersHost
             services
                 .AddCommon()
                 .AddMapper()
+                .AddLogger()
                 .AddNats(Configuration)
                 .AddEfCore(Configuration)
                 .AddQueries()
+                .AddNatsQueryFactory()
                 .AddCommands()
+                .AddNatsCommandFactory()
                 .AddDDD()
                 .AddHostedService<CommandsMessageRecieverHostedService>()
                 .AddHostedService<QueryMessageReceiverHostedService>();

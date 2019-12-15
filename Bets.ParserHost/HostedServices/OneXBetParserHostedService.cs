@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Bets.Configuration;
 using Bets.Games.Domain.Enums;
 using Bets.Games.Domain.Models;
-using Bets.ParserHost.Config;
 using Bets.ParserHost.Helpers;
 using HtmlAgilityPack;
 using In.Cqrs.Nats.Abstract;
@@ -47,7 +47,14 @@ namespace Bets.ParserHost.HostedServices
                 var waiter = new ManualResetEvent(false);
                 waiters[i] = waiter;
 
-                ThreadProvider.Run(() => foundGames.Add(ParseGame(node)), () => waiter.Set());
+                ThreadProvider.Run(() =>
+                {
+                    var game = ParseGame(node);
+                    if (game != null)
+                    {
+                        foundGames.Add(ParseGame(node));
+                    }
+                }, () => waiter.Set());
             }
 
             WaitHandle.WaitAll(waiters, TimeSpan.FromMinutes(1));

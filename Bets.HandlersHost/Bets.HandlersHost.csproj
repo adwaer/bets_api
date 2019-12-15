@@ -5,6 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Bets.Configuration\Bets.Configuration.csproj" />
       <ProjectReference Include="..\Bets.Games.Dal\Bets.Games.Dal.csproj" />
       <ProjectReference Include="..\Bets.Games.QueryHandlers\Bets.Games.QueryHandlers.csproj" />
       <ProjectReference Include="..\infrastructure\In.Cqrs.Command.Nats\In.Cqrs.Command.Nats.csproj" />

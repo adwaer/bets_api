@@ -5,6 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Bets.Configuration\Bets.Configuration.csproj" />
       <ProjectReference Include="..\Bets.Games.Domain\Bets.Games.Domain.csproj" />
       <ProjectReference Include="..\Bets.Selenium\Bets.Selenium.csproj" />
       <ProjectReference Include="..\infrastructure\In.Common\In.Common.csproj" />

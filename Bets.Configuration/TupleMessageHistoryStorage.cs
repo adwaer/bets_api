@@ -4,7 +4,7 @@ using In.Cqrs.Command;
 using In.DataAccess.Repository.Abstract;
 using In.Specifications;
 
-namespace Bets.HandlersHost.Config
+namespace Bets.Configuration
 {
     public class TupleMessageHistoryStorage : IRepository<IMessageResult>
     {

@@ -2,8 +2,10 @@
 using System.IO;
 using System.Reflection;
 using Bets.Api.Dal;
+using Bets.Configuration;
 using Bets.Games.Domain.Models;
 using In.Cqrs.Nats.Config;
+using In.DataAccess.Mongo;
 using In.DataAccess.Mongo.Config;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,12 +18,13 @@ namespace Bets.Web.Config
     /// </summary>
     public static class IocConfig
     {
-        private const string CorsPolicy = "CorsPolicy";
+        public const string CorsPolicy = "CorsPolicy";
 
         private static readonly Assembly[] Assemblies =
         {
             typeof(ApiCtx).Assembly,
-            typeof(SimpleMessageResult).Assembly
+            typeof(SimpleMessageResult).Assembly,
+            typeof(ParsingQueueSettings).Assembly
         };
 
         /// <summary>
@@ -34,9 +37,8 @@ namespace Bets.Web.Config
             services.AddCors(options =>
             {
                 options.AddPolicy(CorsPolicy,
-                    builder => builder.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader()
+                    builder => builder.AllowAnyMethod().AllowAnyHeader()
+                        .WithOrigins("http://localhost:4200")
                         .AllowCredentials());
             });
 
@@ -106,7 +108,14 @@ namespace Bets.Web.Config
             
             return services
                 .AddScoped(provider => new ApiCtx(eventsDbConnectionString))
+                .AddScoped<IMongoCtx>(provider => provider.GetService<ApiCtx>())
                 .AddMongo(Assemblies);
+        }
+        
+        public static IServiceCollection AddConfigOptions(this IServiceCollection services,
+            IConfiguration configuration)
+        {
+            return services.Configure<ParsingQueueSettings>(configuration.GetSection("ParsingSettings"));
         }
     }
 }

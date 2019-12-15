@@ -8,3 +8,6 @@ popd
 
 start runner.slave.cmd
 popd
+
+start runner.parsers.cmd
+popd

@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Bets.Games.Domain\Bets.Games.Domain.csproj" />
+      <ProjectReference Include="..\infrastructure\In.Cqrs.Command\In.Cqrs.Command.csproj" />
+      <ProjectReference Include="..\infrastructure\In.Cqrs.Nats\In.Cqrs.Nats.csproj" />
+      <ProjectReference Include="..\infrastructure\In.DataAccess\In.DataAccess.csproj" />
+    </ItemGroup>
+
+</Project>
