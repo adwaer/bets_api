@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Collections.Generic;
+using Bets.Games.Services.models;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bets.Web.Controllers
 {
@@ -9,6 +11,11 @@ namespace Bets.Web.Controllers
     [Route("[controller]")]
     public class TestController : ControllerBase
     {
-        
+//        [ProducesResponseType()]
+        [HttpGet]
+        public ActionResult<IEnumerable<IEnumerable<Game>>> Get()
+        {
+            return Ok();
+        }
     }
 }

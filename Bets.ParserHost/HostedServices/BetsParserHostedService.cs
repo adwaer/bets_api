@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,48 +12,42 @@ using Bets.Selenium;
 using In.Cqrs.Nats.Abstract;
 using In.Logging;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using NATS.Client;
 using OpenQA.Selenium;
 
 namespace Bets.ParserHost.HostedServices
 {
-    public abstract class BetsParserHostedService : IHostedService
+    public abstract class BetsParserHostedService : BackgroundService
     {
-        private bool _stopped;
         private readonly INatsConnectionFactory _connectionFactory;
-        protected readonly By WaitBy;
+        private readonly By _waitBy;
         private readonly ParsingBookmakerSettings _settings;
-        private readonly string _natsQueue;
 
         private IEncodedConnection _connection;
 
-        protected ILogService LogService { get; }
+        private ILogService LogService { get; }
         protected ThreadProvider ThreadProvider { get; }
         protected WebDriverWrap WebDriver;
+        protected readonly ParsingSettings ParsingSettings;
 
         protected BetsParserHostedService(ILogService logger, INatsConnectionFactory connectionFactory,
-            ThreadProvider threadProvider, By waitBy,
-            IOptions<ParsingSettings> options)
+            ThreadProvider threadProvider, By waitBy, ParsingSettings parsingSettings,
+            ParsingBookmakerSettings bkSettings)
         {
             _connectionFactory = connectionFactory;
-            WaitBy = waitBy;
-            if (GetType() == typeof(OneXBetParserHostedService))
-            {
-                _settings = options.Value.OneXBet;
-                _natsQueue = options.Value.QueueSubject;
-            }
+            _waitBy = waitBy;
+            ParsingSettings = parsingSettings;
+            _settings = bkSettings;
 
             LogService = logger;
             ThreadProvider = threadProvider;
         }
 
-        public Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (!_settings.Enabled)
             {
-                _stopped = true;
-                return Task.CompletedTask;
+                return;
             }
 
             LogInfo("Starting..");
@@ -60,42 +55,58 @@ namespace Bets.ParserHost.HostedServices
             _connection = _connectionFactory.Get<BkMqMessage>();
 
             WebDriver = DriverFactory.GetNewDriver(_settings.Driver);
-            WebDriver.Open(_settings.Url, WaitBy);
+            WebDriver.Open(_settings.Url, _waitBy);
 
-            while (!_stopped)
+            var sw = new Stopwatch();
+            sw.Start();
+            while (!stoppingToken.IsCancellationRequested)
             {
-                var games = FetchGames()
-                    .ToList();
-                
+                var games = await FetchGames();
+                if (!games.Any())
+                {
+                    continue;
+                }
+
                 SendResult(new BkMqMessage(games));
+
+                sw.Restart();
             }
 
             LogInfo("Started");
-            return Task.CompletedTask;
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        protected abstract Task<List<BkGame>> FetchGames();
+
+        private readonly List<ManualResetEvent> _eventSlims = new List<ManualResetEvent>();
+
+        protected ManualResetEvent[] GetWaiters(int count)
         {
-            LogInfo("Stopping..");
-            _stopped = true;
-            while (!_stopped)
+            IEnumerable<ManualResetEvent> waiters;
+            if (_eventSlims.Count < count)
             {
-                Thread.Sleep(1000);
+                _eventSlims.AddRange(new ManualResetEvent[count - _eventSlims.Count]
+                    .Select(w => new ManualResetEvent(false)));
+                waiters = _eventSlims;
+            }
+            else
+            {
+                waiters = _eventSlims.Take(count);
             }
 
-            _connection.Dispose();
-
-            LogInfo("Stopped");
-            return Task.CompletedTask;
+            return waiters
+                .Select(w =>
+                {
+                    w.Reset();
+                    return w;
+                })
+                .ToArray();
         }
-
-        protected abstract IEnumerable<BkGame> FetchGames();
 
         private void SendResult(BkMqMessage msg)
         {
             try
             {
-                _connection.Publish(_natsQueue, msg);
+                _connection.Publish(ParsingSettings.QueueSubject, msg);
                 _connection.Flush();
             }
             catch (Exception ex)
@@ -104,12 +115,12 @@ namespace Bets.ParserHost.HostedServices
             }
         }
 
-        protected void LogInfo(string msg)
+        private void LogInfo(string msg)
         {
             LogService.LogInfo(GetType().ToString(), msg);
         }
 
-        protected void LogError(Exception ex, string msg)
+        private void LogError(Exception ex, string msg)
         {
             LogService.LogError(GetType().ToString(), ex, msg);
         }

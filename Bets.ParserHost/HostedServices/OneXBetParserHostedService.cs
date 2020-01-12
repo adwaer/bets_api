@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Bets.Configuration;
+using Bets.Configuration.Enums;
 using Bets.Games.Domain.Enums;
 using Bets.Games.Domain.Models;
 using Bets.ParserHost.Helpers;
@@ -18,82 +20,162 @@ namespace Bets.ParserHost.HostedServices
     public class OneXBetParserHostedService : BetsParserHostedService
     {
         private readonly HtmlDocument _document;
-        
-        public OneXBetParserHostedService(ILogService logService, INatsConnectionFactory connectionFactory,
+        private readonly string[] _groups = {"NCAA", "NBA"};
+
+        public OneXBetParserHostedService(ILogService logger, INatsConnectionFactory connectionFactory,
             IOptions<ParsingSettings> options, ThreadProvider threadProvider)
-            : base(logService, connectionFactory, threadProvider, By.Id("games_content"), options)
+            : base(logger, connectionFactory, threadProvider, By.Id("games_content"),
+                options.Value, options.Value.OneXBet)
         {
             _document = new HtmlDocument();
         }
 
-        protected override IEnumerable<BkGame> FetchGames()
+        protected override Task<List<BkGame>> FetchGames()
         {
-            var webDriver = WebDriver.GetPage();
-            var html = webDriver.ExecuteJavaScript<string>("return document.getElementById('games_content').innerHTML");
-
-            _document.LoadHtml(html);
-            var htmlNodes = _document.DocumentNode
-                .SelectNodes("//div[@class='c-events__item c-events__item_col']");
-
-            var foundGames = new List<BkGame>(htmlNodes.Count);
-            var waiters = new WaitHandle[htmlNodes.Count];
-
-            if (htmlNodes.Count <= 0) return foundGames;
-
-            for (var i = 0; i < htmlNodes.Count; i++)
+            return Task.Run(() =>
             {
-                var node = htmlNodes[i];
+                var webDriver = WebDriver.GetPage();
+                var html = webDriver.ExecuteJavaScript<string>(
+                    "return document.getElementById('games_content').innerHTML");
 
-                var waiter = new ManualResetEvent(false);
-                waiters[i] = waiter;
+                _document.LoadHtml(html);
+                var htmlNodes = _document.DocumentNode
+                    .SelectNodes("//div[@data-name='dashboard-champ-content']")
+                    .Where(node => _groups.Contains(node.SelectSingleNode("div/div[@class='c-events__name']").InnerText))
+                    .ToArray();
 
-                ThreadProvider.Run(() =>
+                var foundGames = new List<BkGame>();
+                var waiters = GetWaiters(htmlNodes.Length);
+
+                if (htmlNodes.Length <= 0) return foundGames;
+
+                for (var i = 0; i < htmlNodes.Length; i++)
                 {
-                    var game = ParseGame(node);
-                    if (game != null)
+                    var node = htmlNodes[i];
+                    var waiter = waiters[i];
+
+                    ThreadProvider.Run(() =>
                     {
-                        foundGames.Add(ParseGame(node));
-                    }
-                }, () => waiter.Set());
-            }
+                        var games = ParseGames(node);
 
-            WaitHandle.WaitAll(waiters, TimeSpan.FromMinutes(1));
+                        if (games.Any())
+                        {
+                            lock (foundGames)
+                            {
+                                foundGames.AddRange(games);
+                            }
+                        }
+                    }, () => waiter.Set());
+                }
 
-            return foundGames;
+                WaitHandle.WaitAll(waiters, 60000);
+                return foundGames;
+            });
         }
 
-        private BkGame ParseGame(HtmlNode node)
+        private BkGame[] ParseGames(HtmlNode champNode)
         {
-            var teams = node.SelectNodes("div/div[@class='c-events-scoreboard']/div/a/span/div/div")
-                ?.Select(x => x.InnerText)
+            var groupNode = champNode.SelectSingleNode("div[contains(@class, 'c-events__item_head')]");
+            var group = groupNode.SelectSingleNode("div[@class='c-events__name']/a").InnerText;
+
+            var nodes = champNode.SelectNodes("div[@class='c-events__item c-events__item_col']");
+            return nodes.Select(Parse)
+                .Where(src => src != null)
                 .ToArray();
 
-            if (teams?.Length != 2)
+            BkGame Parse(HtmlNode node)
             {
-                return null;
+                var scoreNode = node.SelectSingleNode("div/div[@class='c-events-scoreboard']");
+                if (scoreNode == null)
+                {
+                    return null;
+                }
+
+                var eventName = scoreNode.SelectSingleNode("div//span[@class='c-events__teams']")
+                    .GetAttributeValue("title", null)
+                    .Split(" с ОТ")[0];
+
+                if (string.IsNullOrEmpty(eventName))
+                {
+                    return null;
+                }
+
+                var betsNode = node.SelectSingleNode("div/div[@class='c-bets']").ChildNodes;
+
+                var hc = betsNode[7].InnerText.Trim().Trim('+', '-');
+                var hcKef1 = betsNode[6].InnerText.Trim();
+                var hcKef2 = betsNode[8].InnerText.Trim();
+
+                var total = betsNode[4].InnerText.Trim();
+                var totalKef1 = betsNode[3].InnerText.Trim();
+                var totalKef2 = betsNode[5].InnerText.Trim();
+
+                var time = scoreNode.SelectSingleNode("div//div[@class='c-events__time']/span")?.InnerText;
+                if (time == null)
+                {
+                    return null;
+                }
+
+                var timeSplit = time.Split(':');
+
+                var seconds = -1;
+                try
+                {
+                    if (timeSplit.Length == 2)
+                    {
+                        seconds = int.Parse(timeSplit[0]) * 60 + int.Parse(timeSplit[1]);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw;
+                }
+
+                var parts = scoreNode.SelectNodes("div//span[@class='c-events-scoreboard__cell']")
+                    ?.Select(cell => cell.InnerText)
+                    .ToArray();
+
+                if (parts == null)
+                {
+                    return null;
+                }
+
+                var partsScoreBuilder = new List<string>();
+                var partCount = parts.Length / 2;
+                for (int i = 0; i < partCount; i++)
+                {
+                    if (partCount - 1 == i && parts[i].Equals("0:0"))
+                    {
+                        continue;
+                    }
+                    partsScoreBuilder.Add($"{parts[i]}:{parts[i + partCount]}");
+                }
+
+                return new BkGame
+                {
+                    SecondsPassed = seconds,
+                    PartsScore = partsScoreBuilder,
+                    EventName = eventName,
+                    Group = group,
+                    Bookmaker = Bookmaker.OneXBet,
+                    Hc = hc,
+                    HcKef = string.IsNullOrEmpty(hcKef1) ? hcKef2 : hcKef1,
+                    Total = total,
+                    TotalKef = string.IsNullOrEmpty(totalKef1) ? totalKef2 : totalKef1
+                };
             }
-
-            var bets = node.SelectSingleNode("div/div[@class='c-bets']").ChildNodes;
-
-            var hc = bets[7].InnerText.Trim();
-            var hcKef1 = bets[6].InnerText.Trim();
-            var hcKef2 = bets[8].InnerText.Trim();
-            
-            var total = bets[4].InnerText.Trim();
-            var totalKef1 = bets[3].InnerText.Trim();
-            var totalKef2 = bets[5].InnerText.Trim();
-            
-            return new BkGame
+        }
+        
+        private string GetSportTypeArg()
+        {
+            switch (ParsingSettings.SportType)
             {
-                Team1 = teams[0],
-                Team2 = teams[1],
-                Bookmaker = Bookmaker.OneXBet,
-                Date = DateTime.UtcNow,
-                Hc = hc,
-                HcKef = string.IsNullOrEmpty(hcKef1) ? hcKef2 : hcKef1,
-                Total = total,
-                TotalKef = string.IsNullOrEmpty(totalKef1) ? totalKef2 : totalKef1
-            };
+                case SportType.Basketball:
+                    return "Basketball/";
+                
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
     }
 }

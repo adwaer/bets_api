@@ -39,7 +39,8 @@ namespace Bets.ParserHost
                 {
                     Url = Configuration["NatsSenderOptions:Url"]
                 })
-                .AddHostedService<OneXBetParserHostedService>();
+                .AddHostedService<OneXBetParserHostedService>()
+                .AddHostedService<WinlineParserHostedService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Bets.Configuration;
 using Bets.Configuration.Services;
 using Bets.Games.Domain.MQMsgs;
-using Bets.Web.Config;
+using Bets.Games.Services;
 using Bets.Web.Services;
 using In.Cqrs.Nats.Abstract;
 using In.Logging;
@@ -18,6 +19,7 @@ namespace Bets.Web.HostedServices
     /// <summary>
     /// Games hosted service
     /// </summary>
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class GamesHostedService : HostedServiceBase, IHostedService
     {
         private readonly INatsConnectionFactory _connectionFactory;
@@ -26,6 +28,7 @@ namespace Bets.Web.HostedServices
         private readonly ParsingQueueSettings _options;
         private IEncodedConnection _connection;
         private IAsyncSubscription _subscription;
+        private readonly CorridorsService _corridorsService = new CorridorsService();
 
         /// <summary>
         /// ctor
@@ -34,8 +37,10 @@ namespace Bets.Web.HostedServices
         /// <param name="connectionFactory"></param>
         /// <param name="options"></param>
         /// <param name="replyFactory"></param>
+        /// <param name="hubContext"></param>
         public GamesHostedService(ILogService logService, INatsConnectionFactory connectionFactory,
-            IOptions<ParsingQueueSettings> options, INatsBkMessageReplyFactory replyFactory, IHubContext<GamesHub, IGamesService> hubContext)
+            IOptions<ParsingQueueSettings> options, INatsBkMessageReplyFactory replyFactory,
+            IHubContext<GamesHub, IGamesService> hubContext)
             : base(logService)
         {
             _connectionFactory = connectionFactory;
@@ -75,9 +80,14 @@ namespace Bets.Web.HostedServices
             return async (sender, args) =>
             {
                 var obj = (BkMqMessage) args.ReceivedObject;
-                var games = _replyFactory.Get(obj);
+                var bkGames = _replyFactory.Get(obj);
 
-                await _hubContext.Clients.All.SendGames(games);
+                var games = _corridorsService.AddBkGames(bkGames);
+
+                if (games.Any())
+                {
+                    await _hubContext.Clients.All.SendGames(games);
+                }
             };
         }
     }

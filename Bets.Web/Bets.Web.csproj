@@ -14,6 +14,7 @@
       <ProjectReference Include="..\Bets.Api.Dal\Bets.Api.Dal.csproj" />
       <ProjectReference Include="..\Bets.Configuration\Bets.Configuration.csproj" />
       <ProjectReference Include="..\Bets.Games.Domain\Bets.Games.Domain.csproj" />
+      <ProjectReference Include="..\Bets.Games.Services\Bets.Games.Services.csproj" />
       <ProjectReference Include="..\infrastructure\In.Cqrs.Command.Nats\In.Cqrs.Command.Nats.csproj" />
       <ProjectReference Include="..\infrastructure\In.Cqrs.Nats\In.Cqrs.Nats.csproj" />
       <ProjectReference Include="..\infrastructure\In.Cqrs.Query.Nats\In.Cqrs.Query.Nats.csproj" />
