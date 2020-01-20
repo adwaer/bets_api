@@ -1,11 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="In.Infrastructure.Cqrs.Command.Nats" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.Cqrs.Nats" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.Cqrs.Query.Nats" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.DataAccess.Mongo" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.Logging" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.Web" Version="1.0.2" />
       <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="5.0.0-rc4" />
     </ItemGroup>
@@ -15,12 +21,6 @@
       <ProjectReference Include="..\Bets.Configuration\Bets.Configuration.csproj" />
       <ProjectReference Include="..\Bets.Games.Domain\Bets.Games.Domain.csproj" />
       <ProjectReference Include="..\Bets.Games.Services\Bets.Games.Services.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Cqrs.Command.Nats\In.Cqrs.Command.Nats.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Cqrs.Nats\In.Cqrs.Nats.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Cqrs.Query.Nats\In.Cqrs.Query.Nats.csproj" />
-      <ProjectReference Include="..\infrastructure\In.DataAccess.Mongo\In.DataAccess.Mongo.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Logging\In.Logging.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Web\In.Web.csproj" />
     </ItemGroup>
 
 </Project>

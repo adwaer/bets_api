@@ -68,7 +68,7 @@ namespace Bets.ParserHost.HostedServices
                 }
 
                 SendResult(new BkMqMessage(games));
-
+                Console.WriteLine($"{_settings.Url}: {sw.ElapsedMilliseconds}");
                 sw.Restart();
             }
 
@@ -120,7 +120,7 @@ namespace Bets.ParserHost.HostedServices
             LogService.LogInfo(GetType().ToString(), msg);
         }
 
-        private void LogError(Exception ex, string msg)
+        protected void LogError(Exception ex, string msg)
         {
             LogService.LogError(GetType().ToString(), ex, msg);
         }

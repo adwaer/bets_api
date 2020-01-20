@@ -20,13 +20,19 @@ namespace Bets.Games.Services
             {
                 while (!_disposed)
                 {
-                    _gameList.Remove(game => game.BkGames
-                        .Max(bkGame => bkGame.UpdateDate.AddMinutes(2) < DateTime.UtcNow)
-                    );
+                    try
+                    {
+                        _gameList.Remove(game => game.BkGames.Count <= 1 || game.BkGames
+                            .Max(bkGame => bkGame.UpdateDate.AddMinutes(2) < DateTime.UtcNow)
+                        );
 
-                    _freeBkGameList.Remove(bkGame => bkGame.UpdateDate.AddMinutes(2) < DateTime.UtcNow);
-
-                    Thread.Sleep(TimeSpan.FromMinutes(3));
+                        _freeBkGameList.Remove(bkGame => bkGame.UpdateDate.AddMinutes(2) < DateTime.UtcNow);
+                        Thread.Sleep(TimeSpan.FromMinutes(3));
+                    }
+                    catch
+                    {
+                        // ignored
+                    }
                 }
             });
         }

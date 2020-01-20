@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,7 +24,29 @@ namespace Bets.ParserHost.HostedServices
         private const string Js = @"
 window.scrollTo(0,document.body.scrollHeight); setTimeout(() => window.scrollTo(0,0));
 return angular.element(document.querySelector('.events .table')).scope().filteredChampionships.filter(x => x.idSport == arguments[0] && arguments[1].indexOf(x.name) != -1)
-    .map(item => ({group: item.name, games: item.events}));";
+    .map(item => ({group: item.name, games: item.events
+        .map(e => {
+			var game = {};
+			if(e.state == 1 && e.hasTotal && e.sortTotal){
+				try { var totalStat = e.mainLines[4][e.sortTotal[3]][1]; game.total = totalStat.line.koef; game.totalKef = totalStat.value; } catch{}
+			}
+			if(e.state == 1 && e.hasFora && e.sortFora){
+				try {var foraStat = e.mainLines[3][e.sortFora[3]][1]; game.fora = foraStat.line.koefFora[0].substr(1); game.foraKef = foraStat.value;} catch{}
+			}
+			
+			game.eventName = e.members.join(' - ');
+			game.scores = (e.scores || []).map(score => {
+				score = score.trim();
+				if(!score) score = '0:0';
+				return score;
+			});
+			
+			game.idSport = e.idSport;
+			game.sourceTime = e.sourceTime;
+			return game;
+        })}))
+";
+
 
         public WinlineParserHostedService(ILogService logger, INatsConnectionFactory connectionFactory,
             IOptions<ParsingSettings> options, ThreadProvider threadProvider)
@@ -36,38 +59,47 @@ return angular.element(document.querySelector('.events .table')).scope().filtere
         {
             return Task.Run(() =>
             {
-                var webDriver = WebDriver.GetPage();
-                var v = webDriver.ExecuteJavaScript<IReadOnlyCollection<object>>(Js, GetSportTypeArg(), _groups);
-
-                var games = v
-                    .OfType<Dictionary<string, object>>()
-                    .ToArray();
-
-                var foundGames = new List<BkGame>();
-                var waiters = GetWaiters(games.Length);
-
-                if (games.Length <= 0) return foundGames;
-
-                for (var i = 0; i < games.Length; i++)
+                try
                 {
-                    var node = games[i];
-                    var waiter = waiters[i];
+                    var webDriver = WebDriver.GetPage();
+                    var jsResult =
+                        webDriver.ExecuteJavaScript<IReadOnlyCollection<object>>(Js, GetSportTypeArg(), _groups);
 
-                    ThreadProvider.Run(() =>
+                    var games = jsResult
+                        .OfType<Dictionary<string, object>>()
+                        .ToArray();
+
+                    var foundGames = new List<BkGame>();
+                    var waiters = GetWaiters(games.Length);
+
+                    if (games.Length <= 0) return foundGames;
+
+                    for (var i = 0; i < games.Length; i++)
                     {
-                        var parsedGames = ParseGames(node);
-                        if (parsedGames.Any())
-                        {
-                            lock (foundGames)
-                            {
-                                foundGames.AddRange(parsedGames);
-                            }
-                        }
-                    }, () => waiter.Set());
-                }
+                        var node = games[i];
+                        var waiter = waiters[i];
 
-                WaitHandle.WaitAll(waiters, TimeSpan.FromMinutes(1));
-                return foundGames;
+                        ThreadProvider.Run(() =>
+                        {
+                            var parsedGames = ParseGames(node);
+                            if (parsedGames.Any())
+                            {
+                                lock (foundGames)
+                                {
+                                    foundGames.AddRange(parsedGames);
+                                }
+                            }
+                        }, () => waiter.Set());
+                    }
+
+                    WaitHandle.WaitAll(waiters, TimeSpan.FromMinutes(1));
+                    return foundGames;
+                }
+                catch (Exception ex)
+                {
+                    LogError(ex, "Parsing exception");
+                    return new List<BkGame>();
+                }
             });
         }
 
@@ -84,35 +116,13 @@ return angular.element(document.querySelector('.events .table')).scope().filtere
 
             BkGame Parse(Dictionary<string, object> game)
             {
-                var eventName = string.Join(" — ", ((IEnumerable<object>) game["members"]).Cast<string>());
+                var eventName = (string) game["eventName"];
 
-                object hc = null, total = null;
-                if ((bool) game["hasTotal"])
-                {
-                    game.TryGetValue("userSelectedForaValue", out hc);
-                }
-
-                if ((bool) game["hasFora"])
-                {
-                    game.TryGetValue("userSelectedTotalValue", out total);
-                }
-
-                if (!game.TryGetValue("scores", out var scores))
-                {
-                    return null;
-                }
-
-                var partsScore = ((IEnumerable<object>) scores)
-                    .Select(score =>
-                    {
-                        var str = ((string) score).Trim();
-                        if (string.IsNullOrEmpty(str))
-                        {
-                            str = "0:0";
-                        }
-
-                        return str;
-                    });
+                game.TryGetValue("fora", out var hc);
+                game.TryGetValue("foraKef", out var hcKef);
+                game.TryGetValue("total", out var total);
+                game.TryGetValue("totalKef", out var totalKef);
+                var scores = ((ReadOnlyCollection<object>) game["scores"]).Cast<string>();
 
                 return new BkGame
                 {
@@ -120,9 +130,11 @@ return angular.element(document.querySelector('.events .table')).scope().filtere
                     Group = group,
                     Bookmaker = Bookmaker.Winline,
                     Hc = hc?.ToString().Trim('+', '-', '−'),
+                    HcKef = hcKef?.ToString(),
                     Total = total?.ToString(),
+                    TotalKef = totalKef?.ToString(),
                     SecondsPassed = ParseTime(game),
-                    PartsScore = partsScore
+                    PartsScore = scores
                 };
             }
 
@@ -132,11 +144,24 @@ return angular.element(document.querySelector('.events .table')).scope().filtere
                 var idSport = (long) game["idSport"];
                 if (idSport.Equals(2)) // basket
                 {
-                    var time = game["sourceTime"]?.ToString(); //2Пол. 3:22 //2Ч 6-17 //1Т 27 //paused
+                    var time = game["sourceTime"]?.ToString(); //2Пол. 3:22 //2Ч 6-17 //1Т 27 //paused / Пер.2 
                     if (!string.IsNullOrEmpty(time))
                     {
                         try
                         {
+                            if (time.StartsWith("Пер."))
+                            {
+                                if (int.TryParse(time.Split('.')[1], out var halfmultiplier))
+                                {
+                                    if (group.Equals("NBA"))
+                                    {
+                                        return 12 * halfmultiplier;
+                                    }
+
+                                    return 10 * halfmultiplier;
+                                }
+                            }
+
                             var timeSplit = time.Split(' ', ':', '-');
                             if (timeSplit.Length <= 1)
                             {
@@ -147,7 +172,7 @@ return angular.element(document.querySelector('.events .table')).scope().filtere
                             var partType = partTime.Substring(1);
 
                             int partMultiplierMinutes;
-                            if (group.Equals("США: NBA"))
+                            if (group.Equals("NBA"))
                             {
                                 partMultiplierMinutes = 12;
                             }

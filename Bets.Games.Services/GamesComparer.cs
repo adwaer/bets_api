@@ -21,15 +21,42 @@ namespace Bets.Games.Services
             });
         }
 
-        public static IEnumerable<BkGameDecorator> CheckGamesStats(BkGame bkGame, IEnumerable<BkGameDecorator> src, Game game)
+        public static IEnumerable<BkGameDecorator> CheckGamesStats(BkGame bkGame, IEnumerable<BkGameDecorator> src,
+            Game game)
         {
             return src.Where(existsGame => IsSameStats(existsGame.BkGame, bkGame, game));
         }
 
+        private static bool IsSameNames(string game1Name, string game2Name)
+        {
+            if (game1Name == game2Name) return true;
+            var game1Split = game1Name.Split('-', StringSplitOptions.RemoveEmptyEntries);
+            var game2Split = game2Name.Split('-', StringSplitOptions.RemoveEmptyEntries);
+
+            var game1Team1Words = game1Split[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var game1Team2Words = game1Split[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            
+            var game2Team1Words = game2Split[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var game2Team2Words = game2Split[1].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            return (IsSameWords(game1Team1Words, game2Team1Words) || IsSameWords(game1Team1Words, game2Team2Words)) &&
+                   (IsSameWords(game1Team2Words, game2Team1Words) || IsSameWords(game1Team2Words, game2Team2Words));
+                
+            bool IsSameWords(string[] words1, string[] words2)
+            {
+                return words1.Any(words2.Contains);
+            }
+        }
+
         private static bool IsSameStats(BkGame existsBkGame, BkGame bkGame, Game game)
         {
-            return IsPartsEqual(existsBkGame, bkGame) &&
-                   existsBkGame.Group.Equals(bkGame.Group, StringComparison.CurrentCultureIgnoreCase) &&
+            if (bkGame.SecondsPassed < 100 || bkGame.PartsScore.Count() == 1 && bkGame.PartsScore.First().Equals("0:0"))
+            {
+                return false;
+            }
+
+            return existsBkGame.Group.Equals(bkGame.Group, StringComparison.CurrentCultureIgnoreCase) &&
+                   IsPartsEqual(existsBkGame, bkGame) &&
                    IsInsidePeriod(game, bkGame, existsBkGame);
         }
 
@@ -94,7 +121,7 @@ namespace Bets.Games.Services
         {
             var dice = existsBkGame.EventName
                 .DiceCoefficient(newBkGame.EventName);
-            
+
             int leven = existsBkGame.EventName
                 .LevenshteinDistance(newBkGame.EventName);
 

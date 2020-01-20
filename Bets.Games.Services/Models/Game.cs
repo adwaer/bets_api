@@ -18,24 +18,9 @@ namespace Bets.Games.Services.models
 
         public bool IsSameEvent(BkGame bkGame)
         {
-            var game = GamesComparer
+            return GamesComparer
                 .FindBkGames(bkGame, BkGames, this)
-                .FirstOrDefault();
-            
-            if (game == null)
-            {
-                return false;
-            }
-
-            if (BkGames.Count > 2)
-            {
-                BkGames = BkGames.Where(bg => GamesComparer
-                        .CheckGamesStats(bkGame, BkGames, this)
-                        .Any())
-                    .ToList();
-            }
-
-            return true;
+                .Any();
         }
 
         public void AddBkGame(BkGame bkGame)
@@ -51,8 +36,15 @@ namespace Bets.Games.Services.models
 
         public void UpdateBkGame(BkGame bkGame)
         {
-            var foundGame = BkGames.First(bg => bg.BkGame.Bookmaker == bkGame.Bookmaker);
-            Update(foundGame, bkGame);
+            var foundGame = BkGames.FirstOrDefault(bg => bg.BkGame.Bookmaker == bkGame.Bookmaker);
+            if (foundGame == null)
+            {
+                AddBkGame(bkGame);
+            }
+            else
+            {
+                Update(foundGame, bkGame);
+            }
         }
 
         private void Update(BkGameDecorator bkGame, BkGame newData)

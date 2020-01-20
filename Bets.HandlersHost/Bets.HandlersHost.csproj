@@ -1,22 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Bets.Configuration\Bets.Configuration.csproj" />
       <ProjectReference Include="..\Bets.Games.Dal\Bets.Games.Dal.csproj" />
       <ProjectReference Include="..\Bets.Games.QueryHandlers\Bets.Games.QueryHandlers.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Cqrs.Command.Nats\In.Cqrs.Command.Nats.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Cqrs.Nats\In.Cqrs.Nats.csproj" />
-      <ProjectReference Include="..\infrastructure\In.Cqrs.Query.Nats\In.Cqrs.Query.Nats.csproj" />
-      <ProjectReference Include="..\infrastructure\In.DataAccess.EfCore\In.DataAccess.EfCore.csproj" />
-      <ProjectReference Include="..\infrastructure\In.DataMapping.Automapper\In.DataMapping.Automapper.csproj" />
-      <ProjectReference Include="..\infrastructure\In.DDD\In.DDD.csproj" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="In.Infrastructure.Cqrs.Command.Nats" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.Cqrs.Nats" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.Cqrs.Query.Nats" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.DataAccess.EfCore" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.DataMapping.Automapper" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.DDD" Version="1.0.2" />
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.0.0" />
       <PackageReference Include="Serilog.AspNetCore" Version="3.2.0" />
     </ItemGroup>

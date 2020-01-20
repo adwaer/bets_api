@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netcoreapp3.0</TargetFramework>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\infrastructure\In.Cqrs.Command\In.Cqrs.Command.csproj" />
-      <ProjectReference Include="..\infrastructure\In.DataAccess\In.DataAccess.csproj" />
+      <PackageReference Include="In.Infrastructure.Cqrs.Command" Version="1.0.2" />
+      <PackageReference Include="In.Infrastructure.DataAccess" Version="1.0.2" />
     </ItemGroup>
 
 </Project>

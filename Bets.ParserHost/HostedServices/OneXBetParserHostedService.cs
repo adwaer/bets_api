@@ -94,6 +94,11 @@ namespace Bets.ParserHost.HostedServices
                 var eventName = scoreNode.SelectSingleNode("div//span[@class='c-events__teams']")
                     .GetAttributeValue("title", null)
                     .Split(" с ОТ")[0];
+                
+                if (eventName.Contains("Статистика"))
+                {
+                    return null;
+                }
 
                 if (string.IsNullOrEmpty(eventName))
                 {
@@ -144,7 +149,9 @@ namespace Bets.ParserHost.HostedServices
                 var partCount = parts.Length / 2;
                 for (int i = 0; i < partCount; i++)
                 {
-                    if (partCount - 1 == i && parts[i].Equals("0:0"))
+                    var leftScore = parts[i];
+                    var rightScore = parts[i + partCount];
+                    if (partCount - 1 == i && leftScore.Equals("0") && rightScore.Equals("0"))
                     {
                         continue;
                     }
@@ -155,7 +162,7 @@ namespace Bets.ParserHost.HostedServices
                 {
                     SecondsPassed = seconds,
                     PartsScore = partsScoreBuilder,
-                    EventName = eventName,
+                    EventName = eventName.Replace('—', '-'),
                     Group = group,
                     Bookmaker = Bookmaker.OneXBet,
                     Hc = hc,
