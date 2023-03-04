@@ -7,7 +7,7 @@
     <ItemGroup>
       <PackageReference Include="In.Infrastructure.DataAccess.Mongo" Version="1.0.2" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.0.0" />
-      <PackageReference Include="MongoDB.Driver" Version="2.9.2" />
+      <PackageReference Include="MongoDB.Driver" Version="2.19.0" />
     </ItemGroup>
 
     <ItemGroup>
